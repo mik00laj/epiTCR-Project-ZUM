@@ -40,13 +40,6 @@ def iterative_training_with_lof(X_train, y_train, model, n_iterations=5,):
         X_current = X_train.iloc[current_indices]
         y_current = y_train.iloc[current_indices]
 
-        # Informacje o LOF range dla tej iteracji
-        # current_lof_scores = lof_scores[current_indices]
-        # lof_min, lof_max = np.min(current_lof_scores), np.max(current_lof_scores)
-
-        # print(f"  {n_samples_current} próbek")
-        # print(f"  LOF zakres: [{lof_min:.4f}, {lof_max:.4f}]")
-
         model.fit(X_current, np.ravel(y_current))
 
     print(f"\nIteracyjne uczenie zakończone!")
@@ -65,7 +58,7 @@ def iterative_training_with_gof(X_train, y_train, model, n_iterations=5,):
     """
 
     print(f"Rozpoczynam iteracyjne uczenie z {n_iterations} iteracjami...")
-    print("Obliczanie LOF scores...")
+    print("Obliczanie GOF scores...")
     gof_scores, _ = GOF(X_train, k=5, metric='euclidean', threshold=None, quantile=0.95)
 
     # Lista indeksów próbek z X_train posortowanych według metryki od najniższego LOF score
