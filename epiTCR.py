@@ -1,6 +1,7 @@
-import sys
+import sys, os
 import numpy as np
 import pandas as pd
+from fontTools.misc.cython import returns
 from sklearn.ensemble import RandomForestClassifier
 from imblearn.under_sampling import RandomUnderSampler
 from argparse import ArgumentParser
@@ -16,12 +17,7 @@ parser.add_argument("-tr", "--trainfile", required=True, help="Specify the full 
 parser.add_argument("-te", "--testfile", required=True, help="Specify the full path of the test file with TCR sequences")
 parser.add_argument("-c", "--chain", default="ce", help="Specify the chain(s) to use (ce, cem). Default: ce")
 parser.add_argument("-o", "--outfile", default="output.csv", help="Specify output file")
-parser.add_argument(
-    "-m",
-    "--iter_metric",
-    default="standard",
-    help="Specify the metric for iterative training (LOF, GOF) or use standard training. Default: standard"
-)
+parser.add_argument(   "-m", "--iter_metric",default="standard",help="Specify the metric for iterative training (LOF, GOF). Default: standard")
 args = parser.parse_args()
 
 chain = args.chain
@@ -34,18 +30,14 @@ print('Loading and encoding the dataset...')
 train_data = pd.read_csv(args.trainfile)
 test_data = pd.read_csv(args.testfile)
 
-models = [
-    ('Random Forest - without MHC', RandomForestClassifier(bootstrap=False, max_features=15, n_estimators=300, n_jobs=-1, random_state=42)),
-    ('Random Forest - with MHC', RandomForestClassifier(max_features=20, n_estimators=300, n_jobs=-1, random_state=42))
-]
 
-if chain == 'ce':
+def RandomForest_withoutMHC(train_data, test_data, metric="standard"):
     X_train, y_train = Processor.dataRepresentationDownsamplingWithoutMHCb(train_data)
     X_test = Processor.dataRepresentationBlosum62WithoutMHCb(test_data)
     y_test = test_data[["binder"]]
 
     print('Training Random Forest without MHC...')
-    model = models[0][1]
+    model = RandomForestClassifier(bootstrap=False, max_features=15, n_estimators=300, n_jobs=-1, random_state=42)
     if metric == "LOF":
         rf_model = iterative_training_with_lof(X_train, y_train, model, n_iterations=5)
     elif metric == "GOF":
@@ -67,13 +59,15 @@ if chain == 'ce':
     test_acc = accuracy_score(y_test, y_rf_test_pred)
     test_auc = roc_auc_score(y_test, y_rf_test_proba)
 
-else:
+    return test_acc, test_auc
+
+def RandomForest_withMHC(train_data, test_data, metric="standard"):
     X_train_mhc, y_train_mhc = Processor.dataRepresentationDownsamplingWithMHCb(train_data)
     X_test_mhc = Processor.dataRepresentationBlosum62WithMHCb(test_data)
     y_test_mhc = test_data[["binder"]]
 
     print('Training Random Forest with MHC...')
-    model = models[1][1]
+    model = RandomForestClassifier(max_features=20, n_estimators=300, n_jobs=-1, random_state=42)
     if metric == "LOF":
         rf_model_mhc = iterative_training_with_lof(X_train_mhc, y_train_mhc, model, n_iterations=5)
     elif metric == "GOF":
@@ -95,6 +89,19 @@ else:
     test_acc = accuracy_score(y_test_mhc, y_rf_test_pred_mhc)
     test_auc = roc_auc_score(y_test_mhc, y_rf_test_proba_mhc)
 
+
+    return test_acc, test_auc
+
+if chain == 'ce':
+    test_acc, test_auc = RandomForest_withoutMHC(train_data, test_data)
+else:
+    test_acc, test_auc = RandomForest_withMHC(train_data, test_data)
+
 print('Done!')
 print(f"Test Accuracy: {test_acc:.4f}")
 print(f"Test AUC: {test_auc:.4f}")
+
+
+
+
+
