@@ -1,7 +1,7 @@
 from src.modules.sampling_metrics import LOF, GOF
 import numpy as np
 
-def iterative_training_with_lof(X_train, y_train, model, n_iterations=5, k = 5):
+def iterative_training_with_lof(X_train, y_train, model, n_iterations=5, k = 5, tree_increment = 0):
     """
     Args:
         X_train: dane treningowe
@@ -17,7 +17,12 @@ def iterative_training_with_lof(X_train, y_train, model, n_iterations=5, k = 5):
     # Lista indeksów próbek z X_train posortowanych według metryki od najniższego LOF score
     sorted_indices = np.argsort(lof_scores)
 
-    model = model.set_params(warm_start=True)
+    if tree_increment == False:
+        model = model.set_params(warm_start=True, n_estimators = 300)
+    else:
+        n_initial_estimator = int(300/n_iterations)
+        n_increment_estimator = n_initial_estimator
+        model = model.set_params(warm_start = True, n_estimators = n_initial_estimator)
 
     # Obliczenie rozmiarów batchy dla każdej iteracji
     total_samples = len(X_train)
@@ -36,6 +41,7 @@ def iterative_training_with_lof(X_train, y_train, model, n_iterations=5, k = 5):
         y_current = y_train.iloc[current_indices]
 
         model.fit(X_current, np.ravel(y_current))
+        model = model.set_params( n_estimators = model.n_estimators + n_increment_estimator)
 
     print(f"\nIteracyjne uczenie zakończone!")
 

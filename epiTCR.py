@@ -18,35 +18,44 @@ parser = ArgumentParser(description="Specifying Input Parameters")
 parser.add_argument("-tr", "--trainfile", required=True, help="Specify the full path of the training file with TCR sequences")
 parser.add_argument("-te", "--testfile", required=True, help="Specify the full path of the test file with TCR sequences")
 parser.add_argument("-c", "--chain", default="ce", help="Specify the chain(s) to use (ce, cem). Default: ce")
-parser.add_argument(   "-m", "--iter_metric",default="standard",help="Specify the metric for iterative training (LOF, GOF). Default: standard")
-parser.add_argument(   "-k", "--kneighbors",default="1",help="Specify the number of neighbors for LOF/GOF (default: 5). Only used if metric is LOF or GOF")
-parser.add_argument(   "-t", "--test",default="no",help="Specify if you want to test the model (yes, no). Default: no")
+parser.add_argument("-m", "--iter_metric",default="standard",help="Specify the metric for iterative training (LOF, GOF). Default: standard")
+parser.add_argument("-k", "--kneighbors",default="1",help="Specify the number of neighbors for LOF/GOF (default: 5). Only used if metric is LOF or GOF")
+parser.add_argument("-t", "--test",default="no",help="Specify if you want to test the model (yes, no). Default: no")
+parser.add_argument("-ti", "--trees_increment",default=False,help="Specify if new trees should appear in next model fit function call. Default: False")
+parser.add_argument("-f", "--number_of_features",default=15,help="Specify how many features a tree should have up to 600 for 'ce' chain and 1280 for 'cem' chain. Default: 15")
+parser.add_argument("-b", "--bootstrap", action='store_true', default=False,help="Specify if you want to have the same dataset for each tree training. Default: False")
 args = parser.parse_args()
 
 chain = args.chain
 metric = args.iter_metric
 k = int(args.kneighbors)
 test = args.test
+f = args.number_of_features
+bootstrap = args.bootstrap
+ti = args.trees_increment
 
 if chain not in ["ce", "cem"]:
     sys.exit("Invalid chain. You can select ce (cdr3b+epitope) or cem (cdr3b+epitope+mhc)")
+
+if (chain == "ce" and f >=600) or (chain == "cem" and f >= 1280):
+    sys.exit("Invalid number_of_features. You can select lower than 600 for ce (cdr3b+epitope) or lower than 1280 for cem (cdr3b+epitope+mhc)")
 
 print('Loading and encoding the dataset...')
 train_data = pd.read_csv(args.trainfile)
 test_data = pd.read_csv(args.testfile)
 
 
-def RandomForest_withoutMHC(train_data, test_data, metric="standard", k=k):
+def RandomForest_withoutMHC(train_data, test_data, metric="standard", k=k, max_features = f, bootstrap = bootstrap, tree_increment = ti):
     X_train, y_train = Processor.dataRepresentationDownsamplingWithoutMHCb(train_data)
     X_test = Processor.dataRepresentationBlosum62WithoutMHCb(test_data)
     y_test = test_data[["binder"]]
 
     print('Training Random Forest without MHC...')
-    model = RandomForestClassifier(bootstrap=False, max_features=15, n_estimators=300, n_jobs=-1, random_state=42)
+    model = RandomForestClassifier(bootstrap=bootstrap, max_features=max_features, n_estimators=300, n_jobs=-1, random_state=42)
     if metric == "LOF":
-        rf_model = iterative_training_with_lof(X_train, y_train, model, n_iterations=5, k=k)
+        rf_model = iterative_training_with_lof(X_train, y_train, model, n_iterations=5, k=k, tree_increment = tree_increment)
     elif metric == "GOF":
-        rf_model = iterative_training_with_gof(X_train, y_train, model, n_iterations=5, k=k)
+        rf_model = iterative_training_with_gof(X_train, y_train, model, n_iterations=5, k=k, tree_increment = tree_increment)
     else:
         rf_model = model.fit(X_train, np.ravel(y_train))
     # Model.saveByPickle(rf_model, f"./models/rdforestWithoutMHCModel_metric={metric}_k={k}.pickle")#_test_file={args.testfile}
@@ -93,18 +102,19 @@ def RandomForest_withoutMHC(train_data, test_data, metric="standard", k=k):
 
     return test_acc, test_auc, sensitivity, specificity
 
-def RandomForest_withMHC(train_data, test_data, metric="standard", k=k):
+def RandomForest_withMHC(train_data, test_data, metric="standard", k=k, max_features = f, bootstrap = bootstrap, tree_increment = ti):
     X_train_mhc, y_train_mhc = Processor.dataRepresentationDownsamplingWithMHCb(train_data)
     X_test_mhc = Processor.dataRepresentationBlosum62WithMHCb(test_data)
     y_test_mhc = test_data[["binder"]]
 
     print('Training Random Forest with MHC...')
-    model = RandomForestClassifier(max_features=20, n_estimators=300, n_jobs=-1, random_state=42)
+    model = RandomForestClassifier(bootstrap=bootstrap, max_features=max_features, n_jobs=-1, random_state=42)
     if metric == "LOF":
-        rf_model_mhc = iterative_training_with_lof(X_train_mhc, y_train_mhc, model, n_iterations=5, k=k)
+        rf_model_mhc = iterative_training_with_lof(X_train_mhc, y_train_mhc, model, n_iterations=5, k=k, tree_increment = tree_increment)
     elif metric == "GOF":
-        rf_model_mhc = iterative_training_with_gof(X_train_mhc, y_train_mhc, model, n_iterations=5, k=k)
+        rf_model_mhc = iterative_training_with_gof(X_train_mhc, y_train_mhc, model, n_iterations=5, k=k, tree_increment = tree_increment)
     else:
+        model = model.set_params(n_estimators=300)
         rf_model_mhc = model.fit(X_train_mhc, np.ravel(y_train_mhc))
     # Model.saveByPickle(rf_model_mhc, f"./models/rdforestWithMHCModel_metric={metric}_k={k}.pickle")#_test_file={args.testfile}
 
@@ -153,9 +163,9 @@ if test == "yes":
 
 else:
     if chain == 'ce':
-        test_acc, test_auc, sensitivity, specificity = RandomForest_withoutMHC(train_data, test_data, metric=metric, k=k)
+        test_acc, test_auc, sensitivity, specificity = RandomForest_withoutMHC(train_data, test_data, metric=metric, k=k, max_features = f, bootstrap = bootstrap)
     else:
-        test_acc, test_auc, sensitivity, specificity = RandomForest_withMHC(train_data, test_data, metric=metric, k=k)
+        test_acc, test_auc, sensitivity, specificity = RandomForest_withMHC(train_data, test_data, metric=metric, k=k, max_features = f, bootstrap = bootstrap)
 
     print('Done!')
     print(f"Test Accuracy: {test_acc:.4f}")
