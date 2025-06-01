@@ -10,6 +10,7 @@ import src.modules.processor as Processor
 from sklearn.metrics import accuracy_score, roc_auc_score
 import src.modules.model as Model
 from iterative_training import *
+from test_runner import *
 
 # Argument parsing
 parser = ArgumentParser(description="Specifying Input Parameters")
@@ -18,10 +19,14 @@ parser.add_argument("-te", "--testfile", required=True, help="Specify the full p
 parser.add_argument("-c", "--chain", default="ce", help="Specify the chain(s) to use (ce, cem). Default: ce")
 parser.add_argument("-o", "--outfile", default="output.csv", help="Specify output file")
 parser.add_argument(   "-m", "--iter_metric",default="standard",help="Specify the metric for iterative training (LOF, GOF). Default: standard")
+parser.add_argument(   "-k", "--kneighbors",default="5",help="Specify the number of neighbors for LOF/GOF (default: 5). Only used if metric is LOF or GOF")
+parser.add_argument(   "-t", "--test",default="no",help="Specify if you want to test the model (yes, no). Default: no")
 args = parser.parse_args()
 
 chain = args.chain
 metric = args.iter_metric
+k = int(args.kneighbors)
+test = args.test
 
 if chain not in ["ce", "cem"]:
     sys.exit("Invalid chain. You can select ce (cdr3b+epitope) or cem (cdr3b+epitope+mhc)")
@@ -31,7 +36,7 @@ train_data = pd.read_csv(args.trainfile)
 test_data = pd.read_csv(args.testfile)
 
 
-def RandomForest_withoutMHC(train_data, test_data, metric="standard"):
+def RandomForest_withoutMHC(train_data, test_data, metric="standard", k=k):
     X_train, y_train = Processor.dataRepresentationDownsamplingWithoutMHCb(train_data)
     X_test = Processor.dataRepresentationBlosum62WithoutMHCb(test_data)
     y_test = test_data[["binder"]]
@@ -39,9 +44,9 @@ def RandomForest_withoutMHC(train_data, test_data, metric="standard"):
     print('Training Random Forest without MHC...')
     model = RandomForestClassifier(bootstrap=False, max_features=15, n_estimators=300, n_jobs=-1, random_state=42)
     if metric == "LOF":
-        rf_model = iterative_training_with_lof(X_train, y_train, model, n_iterations=5)
+        rf_model = iterative_training_with_lof(X_train, y_train, model, n_iterations=5, k=k)
     elif metric == "GOF":
-        rf_model = iterative_training_with_gof(X_train, y_train, model, n_iterations=5)
+        rf_model = iterative_training_with_gof(X_train, y_train, model, n_iterations=5, k=k)
     else:
         rf_model = model.fit(X_train, np.ravel(y_train))
     Model.saveByPickle(rf_model, "./models/rdforestWithoutMHCModel.pickle")
@@ -61,7 +66,7 @@ def RandomForest_withoutMHC(train_data, test_data, metric="standard"):
 
     return test_acc, test_auc
 
-def RandomForest_withMHC(train_data, test_data, metric="standard"):
+def RandomForest_withMHC(train_data, test_data, metric="standard", k=k):
     X_train_mhc, y_train_mhc = Processor.dataRepresentationDownsamplingWithMHCb(train_data)
     X_test_mhc = Processor.dataRepresentationBlosum62WithMHCb(test_data)
     y_test_mhc = test_data[["binder"]]
@@ -69,9 +74,9 @@ def RandomForest_withMHC(train_data, test_data, metric="standard"):
     print('Training Random Forest with MHC...')
     model = RandomForestClassifier(max_features=20, n_estimators=300, n_jobs=-1, random_state=42)
     if metric == "LOF":
-        rf_model_mhc = iterative_training_with_lof(X_train_mhc, y_train_mhc, model, n_iterations=5)
+        rf_model_mhc = iterative_training_with_lof(X_train_mhc, y_train_mhc, model, n_iterations=5, k=k)
     elif metric == "GOF":
-        rf_model_mhc = iterative_training_with_gof(X_train_mhc, y_train_mhc, model, n_iterations=5)
+        rf_model_mhc = iterative_training_with_gof(X_train_mhc, y_train_mhc, model, n_iterations=5, k=k)
     else:
         rf_model_mhc = model.fit(X_train_mhc, np.ravel(y_train_mhc))
     Model.saveByPickle(rf_model_mhc, "./models/rdforestWithMHCModel.pickle")
@@ -92,16 +97,17 @@ def RandomForest_withMHC(train_data, test_data, metric="standard"):
 
     return test_acc, test_auc
 
-if chain == 'ce':
-    test_acc, test_auc = RandomForest_withoutMHC(train_data, test_data)
+if test == "yes":
+    run_full_test_suite(RandomForest_withMHC,RandomForest_withoutMHC)
+
 else:
-    test_acc, test_auc = RandomForest_withMHC(train_data, test_data)
+    if chain == 'ce':
+        test_acc, test_auc = RandomForest_withoutMHC(train_data, test_data, metric=metric, k=k)
+    else:
+        test_acc, test_auc = RandomForest_withMHC(train_data, test_data, metric=metric, k=k)
 
-print('Done!')
-print(f"Test Accuracy: {test_acc:.4f}")
-print(f"Test AUC: {test_auc:.4f}")
-
-
-
+    print('Done!')
+    print(f"Test Accuracy: {test_acc:.4f}")
+    print(f"Test AUC: {test_auc:.4f}")
 
 

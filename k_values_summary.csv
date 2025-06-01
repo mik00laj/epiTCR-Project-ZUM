@@ -1,0 +1,7 @@
+,,test_acc,test_acc,test_acc,test_auc,test_auc
+,,mean,std,count,mean,std
+chain,metric,,,,,
+ce,GOF,0.8561,0.0091,99,0.9068,0.0161
+ce,LOF,0.8774,0.0117,99,0.9212,0.0267
+cem,GOF,0.6834,0.1882,99,0.8623,0.044
+cem,LOF,0.8521,0.0126,99,0.9164,0.0195

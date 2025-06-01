@@ -1,7 +1,7 @@
 from src.modules.sampling_metrics import LOF, GOF
 import numpy as np
 
-def iterative_training_with_lof(X_train, y_train, model, n_iterations=5,):
+def iterative_training_with_lof(X_train, y_train, model, n_iterations=5, k = 5):
     """
     Args:
         X_train: dane treningowe
@@ -13,7 +13,7 @@ def iterative_training_with_lof(X_train, y_train, model, n_iterations=5,):
 
     print(f"Rozpoczynam iteracyjne uczenie z {n_iterations} iteracjami...")
     print("Obliczanie LOF scores...")
-    lof_scores, _ = LOF(X_train, k=5, metric='euclidean', threshold=None, quantile=0.95)
+    lof_scores, _ = LOF(X_train, k=k, metric='euclidean', threshold=None, quantile=0.95)
     # Lista indeksów próbek z X_train posortowanych według metryki od najniższego LOF score
     sorted_indices = np.argsort(lof_scores)
 
@@ -42,7 +42,7 @@ def iterative_training_with_lof(X_train, y_train, model, n_iterations=5,):
     return model
 
 
-def iterative_training_with_gof(X_train, y_train, model, n_iterations=5,):
+def iterative_training_with_gof(X_train, y_train, model, n_iterations=5, k = 5):
     """
     Args:
         X_train: dane treningowe
@@ -54,7 +54,7 @@ def iterative_training_with_gof(X_train, y_train, model, n_iterations=5,):
 
     print(f"Rozpoczynam iteracyjne uczenie z {n_iterations} iteracjami...")
     print("Obliczanie GOF scores...")
-    gof_scores, _ = GOF(X_train, k=5, metric='euclidean', threshold=None, quantile=0.95)
+    gof_scores, _ = GOF(X_train, k=k, metric='euclidean', threshold=None, quantile=0.95)
 
     # Lista indeksów próbek z X_train posortowanych według metryki od najniższego GOF score
     sorted_indices = np.argsort(gof_scores)
