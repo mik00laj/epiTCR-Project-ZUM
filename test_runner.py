@@ -32,28 +32,32 @@ def run_tests(model_fn_with_mhc, model_fn_without_mhc, k_mode=False):
                 for k in range(1, 100, 1):
                     print(f"Test k = {k}")
                     test_data = pd.read_csv(os.path.join(config["test_path"], "test01.csv"))
-                    test_acc, test_auc = config["model_fn"](train_data, test_data, metric=metric, k=k)
+                    test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k)
 
                     results.append({
                         'chain': chain,
                         'metric': metric,
                         'k': k,
                         'test_acc': test_acc,
-                        'test_auc': test_auc
+                        'test_auc': test_auc,
+                        'sensitivity': sensitivity,
+                        'specificity': specificity
                     })
             else:
                 test_files = natsorted([f for f in os.listdir(config["test_path"]) if f.endswith(".csv")])
                 for test_file in test_files:
                     print(f"Testing File = {test_file}")
                     test_data = pd.read_csv(os.path.join(config["test_path"], test_file))
-                    test_acc, test_auc = config["model_fn"](train_data, test_data, metric=metric, k=5)
+                    test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=5)
 
                     results.append({
                         'chain': chain,
                         'metric': metric,
                         'test_file': test_file,
                         'test_acc': test_acc,
-                        'test_auc': test_auc
+                        'test_auc': test_auc,
+                        'sensitivity': sensitivity,
+                        'specificity': specificity
                     })
 
     return pd.DataFrame(results)

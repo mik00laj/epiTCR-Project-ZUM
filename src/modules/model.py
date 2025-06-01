@@ -5,7 +5,7 @@ import time
 
 from sklearn.metrics import (
     classification_report, confusion_matrix, accuracy_score,
-    roc_auc_score, roc_curve, auc, f1_score, plot_roc_curve
+    roc_auc_score, roc_curve, auc, f1_score#, plot_roc_curve
 )
 from sklearn.model_selection import cross_validate, GridSearchCV
 
@@ -57,9 +57,9 @@ def confusionMatrix(y_true, y_pred):
     plt.ylabel('Actual values')
     plt.show()
 
-def rocAuc(model, X, y_true):
-    plot_roc_curve(model, X, y_true)
-    plt.show()
+# def rocAuc(model, X, y_true):
+#     plot_roc_curve(model, X, y_true)
+#     plt.show()
 
 def _rocAuc(y_true, y_score):
     fpr, tpr, _ = roc_curve(y_true, y_score)
