@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.neighbors import LocalOutlierFactor, NearestNeighbors
 
 
-def GOF(X, k=5, metric='euclidean', threshold=None, quantile=0.95):
+def GOF(X, k=1, metric='euclidean', threshold=None, quantile=0.95):
     """
     Args:
         X (np.ndarray lub pd.DataFrame): Zbiór próbek (macierz cech).
@@ -30,7 +30,7 @@ def GOF(X, k=5, metric='euclidean', threshold=None, quantile=0.95):
     return gwn_scores, outlier_labels
 
 
-def LOF(X, k=5, metric='euclidean', threshold=None, quantile=0.95):
+def LOF(X, k=1, metric='euclidean', threshold=None, quantile=0.95):
     """
     Prosta implementacja metody LOF (Local Outlier Factor).
 

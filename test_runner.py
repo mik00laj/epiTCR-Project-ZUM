@@ -68,7 +68,7 @@ def display_results(df, group_by_column, k_mode=False):
     print("=" * 80)
 
     detailed_table = PrettyTable()
-    fields = ["Chain", "Metric", group_by_column.capitalize(), "Accuracy", "AUC"]
+    fields = ["Chain", "Metric", group_by_column.capitalize(), "Accuracy", "AUC", "Sensitivity", "Specificity"]
     detailed_table.field_names = fields
 
     for _, row in df.iterrows():
@@ -77,7 +77,9 @@ def display_results(df, group_by_column, k_mode=False):
             row["metric"],
             row[group_by_column],
             f"{row['test_acc']:.4f}",
-            f"{row['test_auc']:.4f}"
+            f"{row['test_auc']:.4f}",
+            f"{row['sensitivity']:.4f}",
+            f"{row['specificity']:.4f}"
         ])
 
     print(f"\nSZCZEGÓŁOWE WYNIKI:")
@@ -85,11 +87,13 @@ def display_results(df, group_by_column, k_mode=False):
 
     summary_table = PrettyTable()
     summary_table.field_names = ["Chain", "Metric", "Śr. Accuracy", "Odch. Acc", "Śr. AUC", "Odch. AUC",
-                                 "Liczba testów"]
+                                 "Śr. Sensitivity", "Odch. Sens", "Śr. Specificity", "Odch. Spec", "Liczba testów"]
 
     grouped = df.groupby(["chain", "metric"]).agg({
         "test_acc": ['mean', 'std', 'count'],
-        "test_auc": ['mean', 'std']
+        "test_auc": ['mean', 'std'],
+        "sensitivity": ['mean', 'std'],
+        "specificity": ['mean', 'std']
     }).round(4)
 
     for (chain, metric), row in grouped.iterrows():
@@ -100,6 +104,10 @@ def display_results(df, group_by_column, k_mode=False):
             f"{row[('test_acc', 'std')]:.4f}",
             f"{row[('test_auc', 'mean')]:.4f}",
             f"{row[('test_auc', 'std')]:.4f}",
+            f"{row[('sensitivity', 'mean')]:.4f}",
+            f"{row[('sensitivity', 'std')]:.4f}",
+            f"{row[('specificity', 'mean')]:.4f}",
+            f"{row[('specificity', 'std')]:.4f}",
             int(row[('test_acc', 'count')])
         ])
 
@@ -116,7 +124,11 @@ def display_results(df, group_by_column, k_mode=False):
             "Max Accuracy", "k (max acc)",
             "Min Accuracy", "k (min acc)",
             "Max AUC", "k (max auc)",
-            "Min AUC", "k (min auc)"
+            "Min AUC", "k (min auc)",
+            "Max Sensitivity", "k (max sens)",
+            "Min Sensitivity", "k (min sens)",
+            "Max Specificity", "k (max spec)",
+            "Min Specificity", "k (min spec)"
         ]
 
         for (chain, metric), group in df.groupby(["chain", "metric"]):
@@ -124,6 +136,10 @@ def display_results(df, group_by_column, k_mode=False):
             min_acc_row = group.loc[group['test_acc'].idxmin()]
             max_auc_row = group.loc[group['test_auc'].idxmax()]
             min_auc_row = group.loc[group['test_auc'].idxmin()]
+            max_sens_row = group.loc[group['sensitivity'].idxmax()]
+            min_sens_row = group.loc[group['sensitivity'].idxmin()]
+            max_spec_row = group.loc[group['specificity'].idxmax()]
+            min_spec_row = group.loc[group['specificity'].idxmin()]
 
             extra_table.add_row([
                 chain.upper(),
@@ -132,6 +148,10 @@ def display_results(df, group_by_column, k_mode=False):
                 f"{min_acc_row['test_acc']:.4f}", int(min_acc_row['k']),
                 f"{max_auc_row['test_auc']:.4f}", int(max_auc_row['k']),
                 f"{min_auc_row['test_auc']:.4f}", int(min_auc_row['k']),
+                f"{max_sens_row['sensitivity']:.4f}", int(max_sens_row['k']),
+                f"{min_sens_row['sensitivity']:.4f}", int(min_sens_row['k']),
+                f"{max_spec_row['specificity']:.4f}", int(max_spec_row['k']),
+                f"{min_spec_row['specificity']:.4f}", int(min_spec_row['k'])
             ])
 
             extra_data.append({
@@ -145,6 +165,14 @@ def display_results(df, group_by_column, k_mode=False):
                 "k_max_auc": int(max_auc_row['k']),
                 "min_auc": min_auc_row['test_auc'],
                 "k_min_auc": int(min_auc_row['k']),
+                "max_sens": max_sens_row['sensitivity'],
+                "k_max_sens": int(max_sens_row['k']),
+                "min_sens": min_sens_row['sensitivity'],
+                "k_min_sens": int(min_sens_row['k']),
+                "max_spec": max_spec_row['specificity'],
+                "k_max_spec": int(max_spec_row['k']),
+                "min_spec": min_spec_row['specificity'],
+                "k_min_spec": int(min_spec_row['k'])
             })
 
         print(extra_table)
@@ -157,7 +185,11 @@ def display_results(df, group_by_column, k_mode=False):
             "Max Accuracy", "File (max acc)",
             "Min Accuracy", "File (min acc)",
             "Max AUC", "File (max auc)",
-            "Min AUC", "File (min auc)"
+            "Min AUC", "File (min auc)",
+            "Max Sensitivity", "File (max sens)",
+            "Min Sensitivity", "File (min sens)",
+            "Max Specificity", "File (max spec)",
+            "Min Specificity", "File (min spec)"
         ]
 
         for (chain, metric), group in df.groupby(["chain", "metric"]):
@@ -165,6 +197,10 @@ def display_results(df, group_by_column, k_mode=False):
             min_acc_row = group.loc[group['test_acc'].idxmin()]
             max_auc_row = group.loc[group['test_auc'].idxmax()]
             min_auc_row = group.loc[group['test_auc'].idxmin()]
+            max_sens_row = group.loc[group['sensitivity'].idxmax()]
+            min_sens_row = group.loc[group['sensitivity'].idxmin()]
+            max_spec_row = group.loc[group['specificity'].idxmax()]
+            min_spec_row = group.loc[group['specificity'].idxmin()]
 
             extra_table.add_row([
                 chain.upper(),
@@ -173,6 +209,10 @@ def display_results(df, group_by_column, k_mode=False):
                 f"{min_acc_row['test_acc']:.4f}", min_acc_row['test_file'],
                 f"{max_auc_row['test_auc']:.4f}", max_auc_row['test_file'],
                 f"{min_auc_row['test_auc']:.4f}", min_auc_row['test_file'],
+                f"{max_sens_row['sensitivity']:.4f}", max_sens_row['test_file'],
+                f"{min_sens_row['sensitivity']:.4f}", min_sens_row['test_file'],
+                f"{max_spec_row['specificity']:.4f}", max_spec_row['test_file'],
+                f"{min_spec_row['specificity']:.4f}", min_spec_row['test_file']
             ])
 
             extra_data.append({
@@ -186,6 +226,14 @@ def display_results(df, group_by_column, k_mode=False):
                 "file_max_auc": max_auc_row['test_file'],
                 "min_auc": min_auc_row['test_auc'],
                 "file_min_auc": min_auc_row['test_file'],
+                "max_sens": max_sens_row['sensitivity'],
+                "file_max_sens": max_sens_row['test_file'],
+                "min_sens": min_sens_row['sensitivity'],
+                "file_min_sens": min_sens_row['test_file'],
+                "max_spec": max_spec_row['specificity'],
+                "file_max_spec": max_spec_row['test_file'],
+                "min_spec": min_spec_row['specificity'],
+                "file_min_spec": min_spec_row['test_file']
             })
 
         print(extra_table)
@@ -211,12 +259,11 @@ def save_results(df, summary_df, prefix, extra_df=None):
 
 def run_full_test_suite(RandomForest_withMHC, RandomForest_withoutMHC):
     # TESTY NA WIELU PLIKACH
-    # df_tests = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, k_mode=False)
-    # summary_tests, extra_tests = display_results(df_tests, group_by_column="test_file")
-    # save_results(df_tests, summary_tests, prefix="test_files", extra_df=extra_tests)
+    df_tests = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, k_mode=False)
+    summary_tests, extra_tests = display_results(df_tests, group_by_column="test_file")
+    save_results(df_tests, summary_tests, prefix="test_files", extra_df=extra_tests)
 
-    # TESTY NA WARTOŚCIACH K
-    df_k = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, k_mode=True)
-    summary_k, extra_k = display_results(df_k, group_by_column="k", k_mode=True)
-    save_results(df_k, summary_k, prefix="k_values", extra_df=extra_k)
-
+    # # TESTY NA WARTOŚCIACH K
+    # df_k = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, k_mode=True)
+    # summary_k, extra_k = display_results(df_k, group_by_column="k", k_mode=True)
+    # save_results(df_k, summary_k, prefix="k_values", extra_df=extra_k)

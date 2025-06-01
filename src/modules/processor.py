@@ -182,8 +182,7 @@ def dataRepresentationDownsamplingWithMHCb(data):
     X_res, y_res = nm.fit_resample(X_train, y_train)
 
     pX_res = dataRepresentationBlosum62WithMHCb(X_res)
-    liczba_kolumn = pX_res.shape[1]
-    print(f"Liczba kolumn w pX_res: {liczba_kolumn}")
+
     py_res = y_res.copy()
 
     return pX_res, py_res

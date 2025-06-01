@@ -19,7 +19,7 @@ parser.add_argument("-tr", "--trainfile", required=True, help="Specify the full 
 parser.add_argument("-te", "--testfile", required=True, help="Specify the full path of the test file with TCR sequences")
 parser.add_argument("-c", "--chain", default="ce", help="Specify the chain(s) to use (ce, cem). Default: ce")
 parser.add_argument(   "-m", "--iter_metric",default="standard",help="Specify the metric for iterative training (LOF, GOF). Default: standard")
-parser.add_argument(   "-k", "--kneighbors",default="5",help="Specify the number of neighbors for LOF/GOF (default: 5). Only used if metric is LOF or GOF")
+parser.add_argument(   "-k", "--kneighbors",default="1",help="Specify the number of neighbors for LOF/GOF (default: 5). Only used if metric is LOF or GOF")
 parser.add_argument(   "-t", "--test",default="no",help="Specify if you want to test the model (yes, no). Default: no")
 args = parser.parse_args()
 
@@ -49,7 +49,7 @@ def RandomForest_withoutMHC(train_data, test_data, metric="standard", k=k):
         rf_model = iterative_training_with_gof(X_train, y_train, model, n_iterations=5, k=k)
     else:
         rf_model = model.fit(X_train, np.ravel(y_train))
-    Model.saveByPickle(rf_model, f"./models/rdforestWithoutMHCModel_metric={metric}_k={k}.pickle")#_test_file={args.testfile}
+    # Model.saveByPickle(rf_model, f"./models/rdforestWithoutMHCModel_metric={metric}_k={k}.pickle")#_test_file={args.testfile}
 
     print('Evaluating Random Forest without MHC...')
     y_rf_test_proba = rf_model.predict_proba(X_test)[:, 1]
@@ -58,7 +58,7 @@ def RandomForest_withoutMHC(train_data, test_data, metric="standard", k=k):
     df_test_rf = pd.DataFrame({'predict_proba': y_rf_test_proba})
     df_prob_test_rf = pd.concat([test_data.reset_index(drop=True), df_test_rf], axis=1)
     df_prob_test_rf['binder_pred'] = (df_prob_test_rf['predict_proba'] >= 0.5).astype(int)
-    df_prob_test_rf.to_csv(f"output_withoutMHC_metric={metric}_k={k}.csv", index=False)#_test_file={args.testfile}
+    # df_prob_test_rf.to_csv(f"output_withoutMHC_metric={metric}_k={k}.csv", index=False)#_test_file={args.testfile}
 
     # Obliczenie metryk
     test_acc = accuracy_score(y_test, y_rf_test_pred)
@@ -85,9 +85,10 @@ def RandomForest_withoutMHC(train_data, test_data, metric="standard", k=k):
     plt.legend(loc="lower right")
     plt.grid(True)
 
-    output_filename = f'roc_curve_withoutMHC_metric={metric}_k={k}.png'#_test_file={args.testfile}
-    plt.savefig(output_filename)
-    print(f"ROC curve saved to: {output_filename}")
+    if test == "no":
+        output_filename = f'roc_curve_withoutMHC_metric={metric}_k={k}.png'#_test_file={args.testfile}
+        plt.savefig(output_filename)
+        print(f"ROC curve saved to: {output_filename}")
 
 
     return test_acc, test_auc, sensitivity, specificity
@@ -105,7 +106,7 @@ def RandomForest_withMHC(train_data, test_data, metric="standard", k=k):
         rf_model_mhc = iterative_training_with_gof(X_train_mhc, y_train_mhc, model, n_iterations=5, k=k)
     else:
         rf_model_mhc = model.fit(X_train_mhc, np.ravel(y_train_mhc))
-    Model.saveByPickle(rf_model_mhc, f"./models/rdforestWithMHCModel_metric={metric}_k={k}.pickle")#_test_file={args.testfile}
+    # Model.saveByPickle(rf_model_mhc, f"./models/rdforestWithMHCModel_metric={metric}_k={k}.pickle")#_test_file={args.testfile}
 
     print('Evaluating Random Forest with MHC...')
     y_rf_test_proba_mhc = rf_model_mhc.predict_proba(X_test_mhc)[:, 1]
@@ -114,7 +115,7 @@ def RandomForest_withMHC(train_data, test_data, metric="standard", k=k):
     df_test_rf_mhc = pd.DataFrame({'predict_proba': y_rf_test_proba_mhc})
     df_prob_test_rf_mhc = pd.concat([test_data.reset_index(drop=True), df_test_rf_mhc], axis=1)
     df_prob_test_rf_mhc['binder_pred'] = (df_prob_test_rf_mhc['predict_proba'] >= 0.5).astype(int)
-    df_prob_test_rf_mhc.to_csv(f"output_withMHC_metric={metric}_k={k}.csv", index=False)#_test_file={args.testfile}
+    # df_prob_test_rf_mhc.to_csv(f"output_withMHC_metric={metric}_k={k}.csv", index=False)#_test_file={args.testfile}
 
     # Obliczenie metryk
     test_acc = accuracy_score(y_test_mhc, y_rf_test_pred_mhc)
@@ -141,8 +142,9 @@ def RandomForest_withMHC(train_data, test_data, metric="standard", k=k):
     plt.legend(loc="lower right")
     plt.grid(True)
 
-    output_filename = f'roc_curve_withMHC_metric={metric}_k={k}.png'#_test_file={args.testfile}
-    plt.savefig(output_filename)
+    if test == "no":
+        output_filename = f'roc_curve_withMHC_metric={metric}_k={k}.png'#_test_file={args.testfile}
+        plt.savefig(output_filename)
 
     return test_acc, test_auc, sensitivity, specificity
 
