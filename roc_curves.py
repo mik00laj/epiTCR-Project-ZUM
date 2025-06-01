@@ -41,7 +41,8 @@ def plot_roc_from_csvs(file_paths, labels):
     plt.show()
 
 if __name__ == "__main__":
-    csv_files = ['output_withMHC_metric=GOF_k=12.csv', 'output_withMHC_metric=GOF_k=2.csv', 'output_withMHC_metric=standard_k=5.csv']  # Replace with your file paths
-    curve_labels = ['with best accuracy', 'with best AUC score', 'baseline']
+    # csv_files = ['output_withMHC_metric=GOF_k=12.csv', 'output_withMHC_metric=LOF_k=2.csv', 'output_withMHC_metric=standard_k=5.csv']  # Replace with your file paths
+    csv_files = ['output_withoutMHC_metric=GOF_k=1.csv', 'output_withoutMHC_metric=LOF_k=1.csv', 'output_withoutMHC_metric=standard_k=5.csv']  # Replace with your file paths
+    curve_labels = ['GOF', 'LOF', 'baseline']
 
     plot_roc_from_csvs(csv_files, curve_labels)
