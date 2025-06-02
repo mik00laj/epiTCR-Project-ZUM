@@ -20,7 +20,7 @@ parser.add_argument("-te", "--testfile", required=True, help="Specify the full p
 parser.add_argument("-c", "--chain", default="ce", help="Specify the chain(s) to use (ce, cem). Default: ce")
 parser.add_argument("-m", "--iter_metric",default="standard",help="Specify the metric for iterative training (LOF, GOF). Default: standard")
 parser.add_argument("-k", "--kneighbors",default="1",help="Specify the number of neighbors for LOF/GOF (default: 5). Only used if metric is LOF or GOF")
-parser.add_argument("-t", "--test",default="no",help="Specify if you want to test the model (yes, no). Default: no")
+parser.add_argument("-t", "--test",default="no",help="Specify what you want to test the model (test_file, max_features, bootstrap, k, trees_increment, no). Default: no")
 parser.add_argument("-ti", "--trees_increment", action='store_true', default=False, help="Specify if new trees should appear in next model fit function call. Default: False")
 parser.add_argument("-f", "--number_of_features",default=15,help="Specify how many features a tree should have up to 600 for 'ce' chain and 1280 for 'cem' chain. Default: 15")
 parser.add_argument("-b", "--bootstrap", action='store_true', default=False, help="Specify if you want to reverse bootstrap value from the default setup. Default: False")
@@ -160,8 +160,8 @@ def RandomForest_withMHC(train_data, test_data, metric="standard", k=k, max_feat
 
     return test_acc, test_auc, sensitivity, specificity
 
-if test == "yes":
-    run_full_test_suite(RandomForest_withMHC,RandomForest_withoutMHC, k = k, tree_increment = ti, max_features = f, bootstrap = bootstrap)
+if test != "no":
+    run_full_test_suite(RandomForest_withMHC,RandomForest_withoutMHC, k = k, tree_increment = ti, max_features = f, bootstrap = bootstrap, group_by_column = test)
 
 else:
     if chain == 'ce':

@@ -36,12 +36,12 @@ def run_tests(model_fn_with_mhc, model_fn_without_mhc, group_by_column="test_fil
                         if chain == 'ce':
                             test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k, max_features = max_features, bootstrap = True, tree_increment = tree_increment)
                         else:
-                            test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k, max_features = max_features, bootstrap = False, tree_increment = tree_increment)
+                            test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k, max_features = max_features+5, bootstrap = False, tree_increment = tree_increment)
                     else:
                         if chain == 'ce':
                             test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k, max_features = max_features, bootstrap = False, tree_increment = tree_increment)
                         else:
-                            test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k, max_features = max_features, bootstrap = True, tree_increment = tree_increment)
+                            test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k, max_features = max_features+5, bootstrap = True, tree_increment = tree_increment)
                     
                     results.append({
                         'chain': chain,
@@ -52,6 +52,60 @@ def run_tests(model_fn_with_mhc, model_fn_without_mhc, group_by_column="test_fil
                         'sensitivity': sensitivity,
                         'specificity': specificity
                     })
+            elif group_by_column == 'max_features':
+                for i in range(5):
+                    test_data = pd.read_csv(os.path.join(config["test_path"], "test01.csv"))
+                    if bootstrap:
+                        if chain == 'ce':
+                            print(f"Test max_features = {max_features + (10*i)}")
+                            test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k, max_features = max_features + (10*i), bootstrap = True, tree_increment = tree_increment)
+                            results.append({
+                                'chain': chain,
+                                'metric': metric,
+                                'max_features': max_features + (10*i),
+                                'test_acc': test_acc,
+                                'test_auc': test_auc,
+                                'sensitivity': sensitivity,
+                                'specificity': specificity
+                            })   
+                        else:
+                            print(f"Test max_features = {max_features + 5 + (10*i)}")
+                            test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k, max_features = max_features + 5 + (10*i), bootstrap = False, tree_increment = tree_increment)
+                            results.append({
+                                'chain': chain,
+                                'metric': metric,
+                                'max_features': max_features + 5 + (10*i),
+                                'test_acc': test_acc,
+                                'test_auc': test_auc,
+                                'sensitivity': sensitivity,
+                                'specificity': specificity
+                            })  
+                    else:
+                        if chain == 'ce':
+                            print(f"Test max_features = {max_features + (10*i)}")
+                            test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k, max_features = max_features + (10*i), bootstrap = False, tree_increment = tree_increment)
+                            results.append({
+                                'chain': chain,
+                                'metric': metric,
+                                'max_features': max_features + (10*i),
+                                'test_acc': test_acc,
+                                'test_auc': test_auc,
+                                'sensitivity': sensitivity,
+                                'specificity': specificity
+                            })  
+                        else:
+                            print(f"Test max_features = {max_features + 5 + (10*i)}")
+                            test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k, max_features = max_features + 5 + (10*i), bootstrap = True, tree_increment = tree_increment)
+                            results.append({
+                                'chain': chain,
+                                'metric': metric,
+                                'max_features': max_features + 5 + (10*i),
+                                'test_acc': test_acc,
+                                'test_auc': test_auc,
+                                'sensitivity': sensitivity,
+                                'specificity': specificity
+                            })  
+
             else:
                 test_files = natsorted([f for f in os.listdir(config["test_path"]) if f.endswith(".csv")])
                 i = 0
@@ -193,6 +247,67 @@ def display_results(df, group_by_column, k_mode=False, tree_increment = False, m
 
         print(extra_table)
 
+    if not k_mode and group_by_column == "max_features":
+        print("\nMAKSYMALNE I MINIMALNE WYNIKI DLA KAŻDEGO ŁAŃCUCHA I METRYKI:")
+        extra_table = PrettyTable()
+        extra_table.field_names = [
+            "Chain", "Metric",
+            "Max Accuracy", "max_features (max acc)",
+            "Min Accuracy", "max_features (min acc)",
+            "Max AUC", "max_features (max auc)",
+            "Min AUC", "max_features (min auc)",
+            "Max Sensitivity", "max_features (max sens)",
+            "Min Sensitivity", "max_features (min sens)",
+            "Max Specificity", "max_features (max spec)",
+            "Min Specificity", "max_features (min spec)"
+        ]
+
+        for (chain, metric), group in df.groupby(["chain", "metric"]):
+            max_acc_row = group.loc[group['test_acc'].idxmax()]
+            min_acc_row = group.loc[group['test_acc'].idxmin()]
+            max_auc_row = group.loc[group['test_auc'].idxmax()]
+            min_auc_row = group.loc[group['test_auc'].idxmin()]
+            max_sens_row = group.loc[group['sensitivity'].idxmax()]
+            min_sens_row = group.loc[group['sensitivity'].idxmin()]
+            max_spec_row = group.loc[group['specificity'].idxmax()]
+            min_spec_row = group.loc[group['specificity'].idxmin()]
+
+            extra_table.add_row([
+                chain.upper(),
+                metric,
+                f"{max_acc_row['test_acc']:.4f}", int(max_acc_row['max_features']),
+                f"{min_acc_row['test_acc']:.4f}", int(min_acc_row['max_features']),
+                f"{max_auc_row['test_auc']:.4f}", int(max_auc_row['max_features']),
+                f"{min_auc_row['test_auc']:.4f}", int(min_auc_row['max_features']),
+                f"{max_sens_row['sensitivity']:.4f}", int(max_sens_row['max_features']),
+                f"{min_sens_row['sensitivity']:.4f}", int(min_sens_row['max_features']),
+                f"{max_spec_row['specificity']:.4f}", int(max_spec_row['max_features']),
+                f"{min_spec_row['specificity']:.4f}", int(min_spec_row['max_features'])
+            ])
+
+            extra_data.append({
+                "chain": chain.upper(),
+                "metric": metric,
+                "max_acc": max_acc_row['test_acc'],
+                "k_max_acc": int(max_acc_row['max_features']),
+                "min_acc": min_acc_row['test_acc'],
+                "k_min_acc": int(min_acc_row['max_features']),
+                "max_auc": max_auc_row['test_auc'],
+                "k_max_auc": int(max_auc_row['max_features']),
+                "min_auc": min_auc_row['test_auc'],
+                "k_min_auc": int(min_auc_row['max_features']),
+                "max_sens": max_sens_row['sensitivity'],
+                "k_max_sens": int(max_sens_row['max_features']),
+                "min_sens": min_sens_row['sensitivity'],
+                "k_min_sens": int(min_sens_row['max_features']),
+                "max_spec": max_spec_row['specificity'],
+                "k_max_spec": int(max_spec_row['max_features']),
+                "min_spec": min_spec_row['specificity'],
+                "k_min_spec": int(min_spec_row['max_features'])
+            })
+
+        print(extra_table)
+
     elif not k_mode and group_by_column == "test_file":
         print("\nMAKSYMALNE I MINIMALNE WYNIKI DLA KAŻDEGO ŁAŃCUCHA I METRYKI:")
         extra_table = PrettyTable()
@@ -273,24 +388,34 @@ def save_results(df, summary_df, prefix, extra_df=None):
     print("=" * 80)
 
 
-def run_full_test_suite(RandomForest_withMHC, RandomForest_withoutMHC, k, tree_increment, max_features, bootstrap):
-    # TESTY NA WIELU PLIKACH
-    # df_tests = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, group_by_column="test_file", k_mode=False, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
-    # summary_tests, extra_tests = display_results(df_tests, group_by_column="test_file", k_mode = False, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
-    # save_results(df_tests, summary_tests, prefix="test_files", extra_df=extra_tests)
+def run_full_test_suite(RandomForest_withMHC, RandomForest_withoutMHC, k, tree_increment, max_features, bootstrap, group_by_column):
+    if group_by_column == 'test_file':
+        # TESTY NA WIELU PLIKACH
+        df_tests = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, group_by_column=group_by_column, k_mode=False, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+        summary_tests, extra_tests = display_results(df_tests, group_by_column="test_file", k_mode = False, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+        save_results(df_tests, summary_tests, prefix=group_by_column, extra_df=extra_tests)
 
-    # # TESTY NA WARTOŚCIACH K
-    # df_k = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, group_by_column="k", k_mode=True, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
-    # summary_k, extra_k = display_results(df_k, group_by_column="k", k_mode=True, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
-    # save_results(df_k, summary_k, prefix="k_values", extra_df=extra_k)
+    elif group_by_column == 'k':
+        # # TESTY NA WARTOŚCIACH K
+        df_k = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, group_by_column=group_by_column, k_mode=True, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+        summary_k, extra_k = display_results(df_k, group_by_column="k", k_mode=True, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+        save_results(df_k, summary_k, prefix=group_by_column, extra_df=extra_k)
 
-    # TESTY DLA ITERACYJNEGO ZWIĘKSZANIA SIĘ LICZBY DRZEW
-    df_n_trees = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, group_by_column="trees_increment", k_mode=False, k = k, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
-    summary_n_trees, extra_n_trees = display_results(df_n_trees, group_by_column="test_file", k_mode=False, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
-    save_results(df_n_trees, summary_n_trees, prefix="trees_increment", extra_df=extra_n_trees)
+    elif group_by_column == 'trees_increment':
+        # TESTY DLA ITERACYJNEGO ZWIĘKSZANIA SIĘ LICZBY DRZEW
+        df_n_trees = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, group_by_column=group_by_column, k_mode=False, k = k, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+        summary_n_trees, extra_n_trees = display_results(df_n_trees, group_by_column="test_file", k_mode=False, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+        save_results(df_n_trees, summary_n_trees, prefix=group_by_column, extra_df=extra_n_trees)
 
-    # TESTY DLA ZAMIANY WARTOŚCI BOOTSTRAP WZGLĘDEM DOMYŚLNYCH WARTOŚCI Z REPOZYTORIUM
-    df_n_trees = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, group_by_column="bootstrap", k_mode=False, k = k, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
-    summary_n_trees, extra_n_trees = display_results(df_n_trees, group_by_column="test_file", k_mode=False, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
-    save_results(df_n_trees, summary_n_trees, prefix="bootstrap", extra_df=extra_n_trees)
+    elif group_by_column == 'boostrap':
+        # TESTY DLA ZAMIANY WARTOŚCI BOOTSTRAP WZGLĘDEM DOMYŚLNYCH WARTOŚCI Z REPOZYTORIUM
+        df_n_trees = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, group_by_column=group_by_column, k_mode=False, k = k, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+        summary_n_trees, extra_n_trees = display_results(df_n_trees, group_by_column="test_file", k_mode=False, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+        save_results(df_n_trees, summary_n_trees, prefix=group_by_column, extra_df=extra_n_trees)
 
+    elif group_by_column == "max_features":
+        # TESTY DLA ITERACYJNEGO ZWIĘKSZANIA SIĘ LICZBY CECH DO RANDOM FOREST
+        df_n_trees = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, group_by_column=group_by_column, k_mode=False, k = k, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+        # df_n_trees = pd.read_csv('max_features_detailed_results.csv')
+        summary_n_trees, extra_n_trees = display_results(df_n_trees, group_by_column="max_features", k_mode=False, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+        save_results(df_n_trees, summary_n_trees, prefix=group_by_column, extra_df=extra_n_trees)
