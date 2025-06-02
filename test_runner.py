@@ -4,7 +4,7 @@ from natsort import natsorted
 import os
 
 
-def run_tests(model_fn_with_mhc, model_fn_without_mhc, k_mode=False):
+def run_tests(model_fn_with_mhc, model_fn_without_mhc, group_by_column="test_file", k_mode=False, k = 1, tree_increment = False, max_features = 15, bootstrap = False):
     chains_config = {
         "cem": {
             "model_fn": model_fn_with_mhc,
@@ -32,8 +32,17 @@ def run_tests(model_fn_with_mhc, model_fn_without_mhc, k_mode=False):
                 for k in range(1, 100, 1):
                     print(f"Test k = {k}")
                     test_data = pd.read_csv(os.path.join(config["test_path"], "test01.csv"))
-                    test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k)
-
+                    if bootstrap:
+                        if chain == 'ce':
+                            test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k, max_features = max_features, bootstrap = True, tree_increment = tree_increment)
+                        else:
+                            test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k, max_features = max_features, bootstrap = False, tree_increment = tree_increment)
+                    else:
+                        if chain == 'ce':
+                            test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k, max_features = max_features, bootstrap = False, tree_increment = tree_increment)
+                        else:
+                            test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k, max_features = max_features, bootstrap = True, tree_increment = tree_increment)
+                    
                     results.append({
                         'chain': chain,
                         'metric': metric,
@@ -45,11 +54,18 @@ def run_tests(model_fn_with_mhc, model_fn_without_mhc, k_mode=False):
                     })
             else:
                 test_files = natsorted([f for f in os.listdir(config["test_path"]) if f.endswith(".csv")])
+                i = 0
                 for test_file in test_files:
+                    i += 1
+                    if group_by_column != 'test_file':
+                        if i >= 4:
+                            break
                     print(f"Testing File = {test_file}")
                     test_data = pd.read_csv(os.path.join(config["test_path"], test_file))
-                    test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=5)
-
+                    if chain == 'ce':
+                        test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k, max_features = max_features, bootstrap = bootstrap, tree_increment = tree_increment)
+                    else:
+                        test_acc, test_auc, sensitivity, specificity = config["model_fn"](train_data, test_data, metric=metric, k=k, max_features = max_features+5, bootstrap = bootstrap, tree_increment = tree_increment)
                     results.append({
                         'chain': chain,
                         'metric': metric,
@@ -63,7 +79,7 @@ def run_tests(model_fn_with_mhc, model_fn_without_mhc, k_mode=False):
     return pd.DataFrame(results)
 
 
-def display_results(df, group_by_column, k_mode=False):
+def display_results(df, group_by_column, k_mode=False, tree_increment = False, max_features = 15, bootstrap = False):
     print(f"\nZakończono testowanie. Zapisano {len(df)} wyników.")
     print("=" * 80)
 
@@ -257,13 +273,24 @@ def save_results(df, summary_df, prefix, extra_df=None):
     print("=" * 80)
 
 
-def run_full_test_suite(RandomForest_withMHC, RandomForest_withoutMHC):
+def run_full_test_suite(RandomForest_withMHC, RandomForest_withoutMHC, k, tree_increment, max_features, bootstrap):
     # TESTY NA WIELU PLIKACH
-    df_tests = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, k_mode=False)
-    summary_tests, extra_tests = display_results(df_tests, group_by_column="test_file")
-    save_results(df_tests, summary_tests, prefix="test_files", extra_df=extra_tests)
+    # df_tests = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, group_by_column="test_file", k_mode=False, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+    # summary_tests, extra_tests = display_results(df_tests, group_by_column="test_file", k_mode = False, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+    # save_results(df_tests, summary_tests, prefix="test_files", extra_df=extra_tests)
 
     # # TESTY NA WARTOŚCIACH K
-    # df_k = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, k_mode=True)
-    # summary_k, extra_k = display_results(df_k, group_by_column="k", k_mode=True)
+    # df_k = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, group_by_column="k", k_mode=True, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+    # summary_k, extra_k = display_results(df_k, group_by_column="k", k_mode=True, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
     # save_results(df_k, summary_k, prefix="k_values", extra_df=extra_k)
+
+    # TESTY DLA ITERACYJNEGO ZWIĘKSZANIA SIĘ LICZBY DRZEW
+    df_n_trees = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, group_by_column="trees_increment", k_mode=False, k = k, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+    summary_n_trees, extra_n_trees = display_results(df_n_trees, group_by_column="test_file", k_mode=False, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+    save_results(df_n_trees, summary_n_trees, prefix="trees_increment", extra_df=extra_n_trees)
+
+    # TESTY DLA ITERACYJNEGO ZWIĘKSZANIA SIĘ LICZBY DRZEW
+    df_n_trees = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, group_by_column="bootstrap", k_mode=False, k = k, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+    summary_n_trees, extra_n_trees = display_results(df_n_trees, group_by_column="test_file", k_mode=False, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
+    save_results(df_n_trees, summary_n_trees, prefix="bootstrap", extra_df=extra_n_trees)
+

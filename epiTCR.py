@@ -21,16 +21,16 @@ parser.add_argument("-c", "--chain", default="ce", help="Specify the chain(s) to
 parser.add_argument("-m", "--iter_metric",default="standard",help="Specify the metric for iterative training (LOF, GOF). Default: standard")
 parser.add_argument("-k", "--kneighbors",default="1",help="Specify the number of neighbors for LOF/GOF (default: 5). Only used if metric is LOF or GOF")
 parser.add_argument("-t", "--test",default="no",help="Specify if you want to test the model (yes, no). Default: no")
-parser.add_argument("-ti", "--trees_increment",default=False,help="Specify if new trees should appear in next model fit function call. Default: False")
+parser.add_argument("-ti", "--trees_increment", action='store_true', default=False, help="Specify if new trees should appear in next model fit function call. Default: False")
 parser.add_argument("-f", "--number_of_features",default=15,help="Specify how many features a tree should have up to 600 for 'ce' chain and 1280 for 'cem' chain. Default: 15")
-parser.add_argument("-b", "--bootstrap", action='store_true', default=False,help="Specify if you want to have the same dataset for each tree training. Default: False")
+parser.add_argument("-b", "--bootstrap", action='store_true', default=False, help="Specify if you want to reverse bootstrap value from the default setup. Default: False")
 args = parser.parse_args()
 
 chain = args.chain
 metric = args.iter_metric
 k = int(args.kneighbors)
 test = args.test
-f = args.number_of_features
+f = int(args.number_of_features)
 bootstrap = args.bootstrap
 ti = args.trees_increment
 
@@ -43,6 +43,8 @@ if (chain == "ce" and f >=600) or (chain == "cem" and f >= 1280):
 print('Loading and encoding the dataset...')
 train_data = pd.read_csv(args.trainfile)
 test_data = pd.read_csv(args.testfile)
+filename = args.testfile.split('/')[-1]
+name_without_ext = filename.replace('.csv', '')
 
 
 def RandomForest_withoutMHC(train_data, test_data, metric="standard", k=k, max_features = f, bootstrap = bootstrap, tree_increment = ti):
@@ -58,7 +60,7 @@ def RandomForest_withoutMHC(train_data, test_data, metric="standard", k=k, max_f
         rf_model = iterative_training_with_gof(X_train, y_train, model, n_iterations=5, k=k, tree_increment = tree_increment)
     else:
         rf_model = model.fit(X_train, np.ravel(y_train))
-    # Model.saveByPickle(rf_model, f"./models/rdforestWithoutMHCModel_metric={metric}_k={k}.pickle")#_test_file={args.testfile}
+    # Model.saveByPickle(rf_model, f"./models/rdforestWithoutMHCModel_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap={bootstrap}_tree_increment={ti}.pickle")
 
     print('Evaluating Random Forest without MHC...')
     y_rf_test_proba = rf_model.predict_proba(X_test)[:, 1]
@@ -67,7 +69,7 @@ def RandomForest_withoutMHC(train_data, test_data, metric="standard", k=k, max_f
     df_test_rf = pd.DataFrame({'predict_proba': y_rf_test_proba})
     df_prob_test_rf = pd.concat([test_data.reset_index(drop=True), df_test_rf], axis=1)
     df_prob_test_rf['binder_pred'] = (df_prob_test_rf['predict_proba'] >= 0.5).astype(int)
-    # df_prob_test_rf.to_csv(f"output_withoutMHC_metric={metric}_k={k}.csv", index=False)#_test_file={args.testfile}
+    df_prob_test_rf.to_csv(f"output_withoutMHC_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap={bootstrap}_tree_increment={ti}.csv", index=False)
 
     # Obliczenie metryk
     test_acc = accuracy_score(y_test, y_rf_test_pred)
@@ -95,7 +97,7 @@ def RandomForest_withoutMHC(train_data, test_data, metric="standard", k=k, max_f
     plt.grid(True)
 
     if test == "no":
-        output_filename = f'roc_curve_withoutMHC_metric={metric}_k={k}.png'#_test_file={args.testfile}
+        output_filename = f'roc_curve_withoutMHC_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap={bootstrap}_tree_increment={ti}.png'
         plt.savefig(output_filename)
         print(f"ROC curve saved to: {output_filename}")
 
@@ -116,7 +118,7 @@ def RandomForest_withMHC(train_data, test_data, metric="standard", k=k, max_feat
     else:
         model = model.set_params(n_estimators=300)
         rf_model_mhc = model.fit(X_train_mhc, np.ravel(y_train_mhc))
-    # Model.saveByPickle(rf_model_mhc, f"./models/rdforestWithMHCModel_metric={metric}_k={k}.pickle")#_test_file={args.testfile}
+    # Model.saveByPickle(rf_model_mhc, f"./models/rdforestWithMHCModel_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap={bootstrap}_tree_increment={ti}.pickle")
 
     print('Evaluating Random Forest with MHC...')
     y_rf_test_proba_mhc = rf_model_mhc.predict_proba(X_test_mhc)[:, 1]
@@ -125,7 +127,7 @@ def RandomForest_withMHC(train_data, test_data, metric="standard", k=k, max_feat
     df_test_rf_mhc = pd.DataFrame({'predict_proba': y_rf_test_proba_mhc})
     df_prob_test_rf_mhc = pd.concat([test_data.reset_index(drop=True), df_test_rf_mhc], axis=1)
     df_prob_test_rf_mhc['binder_pred'] = (df_prob_test_rf_mhc['predict_proba'] >= 0.5).astype(int)
-    # df_prob_test_rf_mhc.to_csv(f"output_withMHC_metric={metric}_k={k}.csv", index=False)#_test_file={args.testfile}
+    df_prob_test_rf_mhc.to_csv(f"output_withMHC_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap={bootstrap}_tree_increment={ti}.csv", index=False)
 
     # Obliczenie metryk
     test_acc = accuracy_score(y_test_mhc, y_rf_test_pred_mhc)
@@ -153,19 +155,25 @@ def RandomForest_withMHC(train_data, test_data, metric="standard", k=k, max_feat
     plt.grid(True)
 
     if test == "no":
-        output_filename = f'roc_curve_withMHC_metric={metric}_k={k}.png'#_test_file={args.testfile}
+        output_filename = f'roc_curve_withMHC_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap={bootstrap}_tree_increment={ti}.png'
         plt.savefig(output_filename)
 
     return test_acc, test_auc, sensitivity, specificity
 
 if test == "yes":
-    run_full_test_suite(RandomForest_withMHC,RandomForest_withoutMHC)
+    run_full_test_suite(RandomForest_withMHC,RandomForest_withoutMHC, k = k, tree_increment = ti, max_features = f, bootstrap = bootstrap)
 
 else:
     if chain == 'ce':
-        test_acc, test_auc, sensitivity, specificity = RandomForest_withoutMHC(train_data, test_data, metric=metric, k=k, max_features = f, bootstrap = bootstrap)
+        if bootstrap:
+            test_acc, test_auc, sensitivity, specificity = RandomForest_withoutMHC(train_data, test_data, metric=metric, k=k, max_features = f, bootstrap = True)
+        else:
+            test_acc, test_auc, sensitivity, specificity = RandomForest_withoutMHC(train_data, test_data, metric=metric, k=k, max_features = f, bootstrap = False)
     else:
-        test_acc, test_auc, sensitivity, specificity = RandomForest_withMHC(train_data, test_data, metric=metric, k=k, max_features = f, bootstrap = bootstrap)
+        if bootstrap:
+            test_acc, test_auc, sensitivity, specificity = RandomForest_withMHC(train_data, test_data, metric=metric, k=k, max_features = f, bootstrap = False)
+        else:
+            test_acc, test_auc, sensitivity, specificity = RandomForest_withMHC(train_data, test_data, metric=metric, k=k, max_features = f, bootstrap = True)
 
     print('Done!')
     print(f"Test Accuracy: {test_acc:.4f}")
