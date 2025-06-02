@@ -1,179 +1,93 @@
 import pandas as pd
 import numpy as np
 import pickle
-import time
 
 from sklearn.metrics import (
-    classification_report, confusion_matrix, accuracy_score,
-    roc_auc_score, roc_curve, auc, f1_score#, plot_roc_curve
+    confusion_matrix, accuracy_score, roc_auc_score, roc_curve 
 )
-from sklearn.model_selection import cross_validate, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
 
 import matplotlib.pyplot as plt
-import seaborn as sns
-from tqdm import tqdm
+from iterative_training import *
+import src.modules.processor as Processor
 
-def train(lst_models, X, y, cv):
-    res_table = []
-    for mdl_name, model in tqdm(lst_models):
-        tic = time.time()
-        cv_res = cross_validate(
-            model, X, y, cv=cv, return_train_score=True,
-            scoring=['accuracy', 'roc_auc']
-        )
-        res_table.append([
-            mdl_name, 
-            cv_res['train_accuracy'].mean(), 
-            cv_res['test_accuracy'].mean(), 
-            np.abs(cv_res['train_accuracy'].mean() - cv_res['test_accuracy'].mean()),
-            cv_res['train_accuracy'].std(),
-            cv_res['test_accuracy'].std(),
-            cv_res['train_roc_auc'].mean(),
-            cv_res['test_roc_auc'].mean(),
-            np.abs(cv_res['train_roc_auc'].mean() - cv_res['test_roc_auc'].mean()),
-            cv_res['train_roc_auc'].std(),
-            cv_res['test_roc_auc'].std(),
-            cv_res['fit_time'].mean()
-        ])
-        toc = time.time()
-        print(f'\tModel {mdl_name} has been trained in {toc - tic:.2f} seconds')
-    
-    res_table = pd.DataFrame(res_table, columns=[
-        'model', 'train_acc', 'test_acc', 'diff_acc', 'train_acc_std', 'test_acc_std',
-        'train_roc_auc', 'test_roc_auc', 'diff_roc_auc', 'train_roc_auc_std', 
-        'test_roc_auc_std', 'fit_time'
-    ])
-    res_table.sort_values(by=['test_acc', 'test_roc_auc'], ascending=False, inplace=True)
-    return res_table.reset_index(drop=True)
+def RandomForest_withoutMHC(train_data, test_data, metric="standard", k=1, max_features = 15, bootstrap = False, tree_increment = False, test = "no", name_without_ext = ""):
+    X_train, y_train = Processor.dataRepresentationDownsamplingWithoutMHCb(train_data)
+    X_test = Processor.dataRepresentationBlosum62WithoutMHCb(test_data)
+    y_test = test_data[["binder"]]
 
-def confusionMatrix(y_true, y_pred):
-    target_names = ['Non-binder', 'Binder']
-    print(classification_report(y_true, y_pred, target_names=target_names))
-    cm = pd.DataFrame(confusion_matrix(y_true, y_pred), index=target_names, columns=target_names)
-    plt.figure(figsize=(6, 4))
-    sns.heatmap(cm, annot=True, fmt='g')
-    plt.title('Confusion matrix')
-    plt.xlabel('Predicted values')
-    plt.ylabel('Actual values')
-    plt.show()
+    print('Training Random Forest without MHC...')
+    model = RandomForestClassifier(bootstrap=bootstrap, max_features=max_features, n_estimators=300, n_jobs=-1, random_state=42)
+    if metric == "LOF":
+        rf_model = iterative_training_with_lof(X_train, y_train, model, n_iterations=5, k=k, tree_increment = tree_increment)
+    elif metric == "GOF":
+        rf_model = iterative_training_with_gof(X_train, y_train, model, n_iterations=5, k=k, tree_increment = tree_increment)
+    else:
+        rf_model = model.fit(X_train, np.ravel(y_train))
+    # saveByPickle(rf_model, f"./models/rdforestWithoutMHCModel_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap={bootstrap}_tree_increment={tree_increment}.pickle")
+    test_acc, test_auc, sensitivity, specificity = evaluation(rf_model, X_test, y_test, test_data, test, metric, k, name_without_ext, max_features, bootstrap, tree_increment)
+    return test_acc, test_auc, sensitivity, specificity
 
-# def rocAuc(model, X, y_true):
-#     plot_roc_curve(model, X, y_true)
-#     plt.show()
+def RandomForest_withMHC(train_data, test_data, metric="standard", k=1, max_features = 15, bootstrap = False, tree_increment = False, test = "no", name_without_ext = ""):
+    X_train_mhc, y_train_mhc = Processor.dataRepresentationDownsamplingWithMHCb(train_data)
+    X_test_mhc = Processor.dataRepresentationBlosum62WithMHCb(test_data)
+    y_test_mhc = test_data[["binder"]]
 
-def _rocAuc(y_true, y_score):
-    fpr, tpr, _ = roc_curve(y_true, y_score)
-    auc_value = roc_auc_score(y_true, y_score)
-    plt.plot(fpr, tpr, label=f"AUC = {auc_value:.3f}")
-    plt.legend(loc=4)
-    plt.show()
+    print('Training Random Forest with MHC...')
+    model = RandomForestClassifier(bootstrap=bootstrap, max_features=max_features, n_jobs=-1, random_state=42)
+    if metric == "LOF":
+        rf_model_mhc = iterative_training_with_lof(X_train_mhc, y_train_mhc, model, n_iterations=5, k=k, tree_increment = tree_increment)
+    elif metric == "GOF":
+        rf_model_mhc = iterative_training_with_gof(X_train_mhc, y_train_mhc, model, n_iterations=5, k=k, tree_increment = tree_increment)
+    else:
+        model = model.set_params(n_estimators=300)
+        rf_model_mhc = model.fit(X_train_mhc, np.ravel(y_train_mhc))
+    # m.saveByPickle(rf_model_mhc, f"./models/rdforestWithMHCModel_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap={bootstrap}_tree_increment={tree_increment}.pickle")
+    test_acc, test_auc, sensitivity, specificity = evaluation(rf_model_mhc, X_test_mhc, y_test_mhc, test_data, test, metric, k, name_without_ext, max_features, bootstrap, tree_increment)
+    return test_acc, test_auc, sensitivity, specificity
 
-def predicMLModel(model, data, X_test, y_test, path):
-    y_rf_test_proba = model.predict_proba(X_test)[:, 1]
-    df_test_rf = pd.DataFrame({'predict_proba': y_rf_test_proba})
-    df_prob_test_rf = pd.concat([data, df_test_rf], axis=1)
-    df_prob_test_rf['binder_pred'] = (df_prob_test_rf['predict_proba'] >= 0.5).astype(int)
+def rocAuc(y_true, y_proba, test, metric, k, name_without_ext, max_features, bootstrap, ti):
+    fpr, tpr, thresholds = roc_curve(y_true, y_proba)
+    roc_auc = roc_auc_score(y_true, y_proba)
 
-    y_true = y_test["binder"].to_numpy()
-    y_pred = df_prob_test_rf["binder_pred"].to_numpy()
-
-    confusionMatrix(y_true, y_pred)
-
-    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
-    accuracy = accuracy_score(y_true, y_pred)
-    sensitivity = tp / (tp + fn)
-    specificity = tn / (tn + fp)
-    auc_value = roc_auc_score(y_true, df_prob_test_rf["predict_proba"])
-
-    print(f"AUC: {auc_value:.3f}")
-    print(f"Accuracy: {accuracy:.3f}")
-    print(f"Sensitivity (TPR): {sensitivity:.3f}")
-    print(f"Specificity (TNR): {specificity:.3f}")
-
-    df_prob_test_rf.to_csv(path, index=False)
-
-    return round(auc_value, 3), round(accuracy, 3), round(sensitivity, 3), round(specificity, 3)
-
-def trainTunningModel(lst_models, X, y, cv):
-    models_final = []
-    for model_name, model, params in tqdm(lst_models):
-        tic = time.time()
-        search = GridSearchCV(estimator=model, param_grid=params, cv=cv, scoring='roc_auc', n_jobs=-1)
-        search.fit(X, y)
-        model_tunned = model.set_params(**search.best_params_)
-        models_final.append((model_name, model_tunned))
-        toc = time.time()
-        print(f'Model {model_name} has been tuned in {toc - tic:.2f} seconds')
-
-    return models_final
-
-def modelRun(algo, pX_res, py_res, pX_test, py_test):
-    algo.fit(pX_res, np.ravel(py_res))
-    y_pred = algo.predict(pX_test)
-    y_pred_proba = algo.predict_proba(pX_test)[:, 1]
-
-    accuracy = accuracy_score(py_test, y_pred)
-    f1 = f1_score(py_test, y_pred)
-    fpr, tpr, _ = roc_curve(py_test, y_pred_proba)
-    auc_value = auc(fpr, tpr)
-    tn, fp, fn, tp = confusion_matrix(py_test, y_pred).ravel()
-
-    confusionMatrix(py_test, y_pred)
-
-    print(algo)
-    print(f"Accuracy: {accuracy:.3f}")
-    print(f"F1 score: {f1:.3f}")
-    print(f"AUC: {auc_value:.3f}")
-    print(f"Sensitivity (TPR): {tp / (tp + fn):.3f}")
-    print(f"Specificity (TNR): {tn / (tn + fp):.3f}")
-
-    rocAuc(algo, pX_test, py_test)
-    return accuracy, f1, fpr, tpr, auc_value
-
-def predictModel(path, path_out):
-    data_predict = pd.read_csv(path)
-    data_predict['binder'] = data_predict['binder'].astype(int)
-    data_predict['binder_pred'] = (data_predict['prediction'] >= 0.5).astype(int)
-
-    y_true = data_predict["binder"].to_numpy()
-    y_pred = data_predict["binder_pred"].to_numpy()
-
-    confusionMatrix(y_true, y_pred)
-
-    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
-    accuracy = accuracy_score(y_true, y_pred)
-    sensitivity = tp / (tp + fn)
-    specificity = tn / (tn + fp)
-    auc_value = roc_auc_score(y_true, data_predict["prediction"])
-
-    print(f"AUC: {auc_value:.3f}")
-    print(f"Accuracy: {accuracy:.3f}")
-    print(f"Sensitivity (TPR): {sensitivity:.3f}")
-    print(f"Specificity (TNR): {specificity:.3f}")
-
-    _rocAuc(y_true, data_predict["prediction"])
-    data_predict.to_csv(path_out, index=False)
-
-    return round(auc_value, 3), round(accuracy, 3), round(sensitivity, 3), round(specificity, 3)
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (AUC = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate (FPR)')
+    plt.ylabel('True Positive Rate (TPR)')
+    plt.title('ROC Curve')
+    plt.legend(loc="lower right")
+    plt.grid(True)
+    if test == "no":
+        output_filename = f'roc_curve_withMHC_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap={bootstrap}_tree_increment={ti}.png'
+        plt.savefig(output_filename)
 
 def saveByPickle(obj, path):
     with open(path, "wb") as f:
         pickle.dump(obj, f)
     print(f"{obj} has been saved at {path}.")
 
-def evaluation(tunning_models, X_train, y_train, X_test, y_test):
-    res = []
-    for name, model in tqdm(tunning_models):
-        model.fit(X_train, y_train)
-        y_train_pred = model.predict(X_train)
-        y_test_pred = model.predict(X_test)
-        train_acc = accuracy_score(y_train, y_train_pred)
-        test_acc = accuracy_score(y_test, y_test_pred)
-        train_roc_auc = roc_auc_score(y_train, y_train_pred)
-        test_roc_auc = roc_auc_score(y_test, y_test_pred)
-        res.append([name, train_acc, test_acc, train_roc_auc, test_roc_auc])
+def evaluation(rf_model, X_test, y_test, test_data, test, metric, k, name_without_ext, max_features, bootstrap, ti):
+    print('Evaluating Random Forest without MHC...')
+    y_rf_test_proba = rf_model.predict_proba(X_test)[:, 1]
+    y_rf_test_pred = rf_model.predict(X_test)
 
-    res = pd.DataFrame(res, columns=['model', 'train_acc', 'test_acc', 'train_roc_auc', 'test_roc_auc'])
-    res.sort_values(by=['test_acc', 'test_roc_auc'], ascending=False, inplace=True)
+    df_test_rf = pd.DataFrame({'predict_proba': y_rf_test_proba})
+    df_prob_test_rf = pd.concat([test_data.reset_index(drop=True), df_test_rf], axis=1)
+    df_prob_test_rf['binder_pred'] = (df_prob_test_rf['predict_proba'] >= 0.5).astype(int)
+    df_prob_test_rf.to_csv(f"output_withoutMHC_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap={bootstrap}_tree_increment={ti}.csv", index=False)
 
-    return res.reset_index(drop=True)
+    # Obliczenie metryk
+    test_acc = accuracy_score(y_test, y_rf_test_pred)
+    test_auc = roc_auc_score(y_test, y_rf_test_proba)
+    cm = confusion_matrix(y_test, y_rf_test_pred)
+    tn, fp, fn, tp = cm.ravel()
+
+    sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
+    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
+
+    rocAuc(df_prob_test_rf['binder'], df_prob_test_rf['predict_proba'], test, metric, k, name_without_ext, max_features, bootstrap, ti)
+
+    return test_acc, test_auc, sensitivity, specificity
