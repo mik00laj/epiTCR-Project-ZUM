@@ -289,7 +289,7 @@ def run_full_test_suite(RandomForest_withMHC, RandomForest_withoutMHC, k, tree_i
     summary_n_trees, extra_n_trees = display_results(df_n_trees, group_by_column="test_file", k_mode=False, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
     save_results(df_n_trees, summary_n_trees, prefix="trees_increment", extra_df=extra_n_trees)
 
-    # TESTY DLA ITERACYJNEGO ZWIĘKSZANIA SIĘ LICZBY DRZEW
+    # TESTY DLA ZAMIANY WARTOŚCI BOOTSTRAP WZGLĘDEM DOMYŚLNYCH WARTOŚCI Z REPOZYTORIUM
     df_n_trees = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, group_by_column="bootstrap", k_mode=False, k = k, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
     summary_n_trees, extra_n_trees = display_results(df_n_trees, group_by_column="test_file", k_mode=False, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
     save_results(df_n_trees, summary_n_trees, prefix="bootstrap", extra_df=extra_n_trees)
