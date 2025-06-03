@@ -45,14 +45,14 @@ if test != "no":
 else:
     if chain == 'ce':
         if bootstrap:
-            test_acc, test_auc, sensitivity, specificity = m.RandomForest_withoutMHC(train_data, test_data, metric=metric, k=k, max_features = f, bootstrap = True, test =test, name_without_ext = name_without_ext)
+            test_acc, test_auc, sensitivity, specificity = m.RandomForest_withoutMHC(train_data, test_data, metric=metric, k=k, tree_increment = ti, max_features = f, bootstrap = True, test =test, name_without_ext = name_without_ext)
         else:
-            test_acc, test_auc, sensitivity, specificity = m.RandomForest_withoutMHC(train_data, test_data, metric=metric, k=k, max_features = f, bootstrap = False, test =test, name_without_ext = name_without_ext)
+            test_acc, test_auc, sensitivity, specificity = m.RandomForest_withoutMHC(train_data, test_data, metric=metric, k=k, tree_increment = ti, max_features = f, bootstrap = False, test =test, name_without_ext = name_without_ext)
     else:
         if bootstrap:
-            test_acc, test_auc, sensitivity, specificity = m.RandomForest_withMHC(train_data, test_data, metric=metric, k=k, max_features = f, bootstrap = False, test =test, name_without_ext = name_without_ext)
+            test_acc, test_auc, sensitivity, specificity = m.RandomForest_withMHC(train_data, test_data, metric=metric, k=k, tree_increment = ti, max_features = f, bootstrap = False, test =test, name_without_ext = name_without_ext)
         else:
-            test_acc, test_auc, sensitivity, specificity = m.RandomForest_withMHC(train_data, test_data, metric=metric, k=k, max_features = f, bootstrap = True, test =test, name_without_ext = name_without_ext)
+            test_acc, test_auc, sensitivity, specificity = m.RandomForest_withMHC(train_data, test_data, metric=metric, k=k, tree_increment = ti, max_features = f, bootstrap = True, test =test, name_without_ext = name_without_ext)
 
     print('Done!')
     print(f"Test Accuracy: {test_acc:.4f}")

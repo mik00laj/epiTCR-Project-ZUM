@@ -53,7 +53,7 @@ def run_tests(model_fn_with_mhc, model_fn_without_mhc, group_by_column="test_fil
                         'specificity': specificity
                     })
             elif group_by_column == 'max_features':
-                for i in range(1):
+                for i in range(5):
                     test_data = pd.read_csv(os.path.join(config["test_path"], "test01.csv"))
                     if bootstrap:
                         if chain == 'ce':
@@ -289,21 +289,21 @@ def display_results(df, group_by_column, k_mode=False):
                 "chain": chain.upper(),
                 "metric": metric,
                 "max_acc": max_acc_row['test_acc'],
-                "k_max_acc": int(max_acc_row['max_features']),
+                "max_f_max_acc": int(max_acc_row['max_features']),
                 "min_acc": min_acc_row['test_acc'],
-                "k_min_acc": int(min_acc_row['max_features']),
+                "max_f_min_acc": int(min_acc_row['max_features']),
                 "max_auc": max_auc_row['test_auc'],
-                "k_max_auc": int(max_auc_row['max_features']),
+                "max_f_max_auc": int(max_auc_row['max_features']),
                 "min_auc": min_auc_row['test_auc'],
-                "k_min_auc": int(min_auc_row['max_features']),
+                "max_f_min_auc": int(min_auc_row['max_features']),
                 "max_sens": max_sens_row['sensitivity'],
-                "k_max_sens": int(max_sens_row['max_features']),
+                "max_f_max_sens": int(max_sens_row['max_features']),
                 "min_sens": min_sens_row['sensitivity'],
-                "k_min_sens": int(min_sens_row['max_features']),
+                "max_f_min_sens": int(min_sens_row['max_features']),
                 "max_spec": max_spec_row['specificity'],
-                "k_max_spec": int(max_spec_row['max_features']),
+                "max_f_max_spec": int(max_spec_row['max_features']),
                 "min_spec": min_spec_row['specificity'],
-                "k_min_spec": int(min_spec_row['max_features'])
+                "max_f_min_spec": int(min_spec_row['max_features'])
             })
 
         print(extra_table)
@@ -407,7 +407,7 @@ def run_full_test_suite(RandomForest_withMHC, RandomForest_withoutMHC, k, tree_i
         summary_n_trees, extra_n_trees = display_results(df_n_trees, group_by_column="test_file", k_mode=False)
         save_results(df_n_trees, summary_n_trees, prefix=group_by_column, extra_df=extra_n_trees)
 
-    elif group_by_column == 'boostrap':
+    elif group_by_column == 'bootstrap':
         # TESTY DLA ZAMIANY WARTOŚCI BOOTSTRAP WZGLĘDEM DOMYŚLNYCH WARTOŚCI Z REPOZYTORIUM
         df_n_trees = run_tests(RandomForest_withMHC, RandomForest_withoutMHC, group_by_column=group_by_column, k_mode=False, k = k, tree_increment = tree_increment, max_features = max_features, bootstrap = bootstrap)
         summary_n_trees, extra_n_trees = display_results(df_n_trees, group_by_column="test_file", k_mode=False)

@@ -41,8 +41,26 @@ def plot_roc_from_csvs(file_paths, labels):
     plt.show()
 
 if __name__ == "__main__":
-    # csv_files = ['output_withMHC_metric=GOF_k=12.csv', 'output_withMHC_metric=LOF_k=2.csv', 'output_withMHC_metric=standard_k=5.csv']  # Replace with your file paths
-    csv_files = ['output_withoutMHC_metric=GOF_k=1.csv', 'output_withoutMHC_metric=LOF_k=1.csv', 'output_withoutMHC_metric=standard_k=5.csv']  # Replace with your file paths
+    # csv_files = ['output_withMHC_metric=GOF_k=12.csv', 'output_withMHC_metric=LOF_k=2.csv', 'output_withMHC_metric=standard_k=5.csv']
+    # csv_files = ['output_withoutMHC_metric=GOF_k=1.csv', 'output_withoutMHC_metric=LOF_k=1.csv', 'output_withoutMHC_metric=standard_k=5.csv']
+
+    # csv_files = ['output_withoutMHC_metric=GOF_k=1_test_file=test01_max_features=15_bootstrap=False_tree_increment=True.csv', 'output_withoutMHC_metric=LOF_k=1_test_file=test01_max_features=15_bootstrap=False_tree_increment=True.csv', 'output_withoutMHC_metric=standard_k=1_test_file=test01_max_features=15_bootstrap=False_tree_increment=True.csv']
+    # csv_files = ['output_withMHC_metric=GOF_k=1_test_file=test01_max_features=20_bootstrap=True_tree_increment=True.csv', 'output_withMHC_metric=LOF_k=1_test_file=test01_max_features=20_bootstrap=True_tree_increment=True.csv', 'output_withMHC_metric=standard_k=1_test_file=test01_max_features=20_bootstrap=True_tree_increment=True.csv']
+    
+    # csv_files = ['output_withoutMHC_metric=GOF_k=1_test_file=test01_max_features=5_bootstrap=False_tree_increment=False.csv', 'output_withoutMHC_metric=LOF_k=1_test_file=test01_max_features=5_bootstrap=False_tree_increment=False.csv', 'output_withoutMHC_metric=standard_k=1_test_file=test01_max_features=5_bootstrap=False_tree_increment=False.csv']
+    # csv_files = ['output_withoutMHC_metric=GOF_k=1_test_file=test01_max_features=15_bootstrap=False_tree_increment=False.csv', 'output_withoutMHC_metric=LOF_k=1_test_file=test01_max_features=15_bootstrap=False_tree_increment=False.csv', 'output_withoutMHC_metric=standard_k=1_test_file=test01_max_features=15_bootstrap=False_tree_increment=False.csv']
+    # csv_files = ['output_withoutMHC_metric=GOF_k=1_test_file=test01_max_features=25_bootstrap=False_tree_increment=False.csv', 'output_withoutMHC_metric=LOF_k=1_test_file=test01_max_features=25_bootstrap=False_tree_increment=False.csv', 'output_withoutMHC_metric=standard_k=1_test_file=test01_max_features=25_bootstrap=False_tree_increment=False.csv']
+    # csv_files = ['output_withoutMHC_metric=GOF_k=1_test_file=test01_max_features=35_bootstrap=False_tree_increment=False.csv', 'output_withoutMHC_metric=LOF_k=1_test_file=test01_max_features=35_bootstrap=False_tree_increment=False.csv', 'output_withoutMHC_metric=standard_k=1_test_file=test01_max_features=35_bootstrap=False_tree_increment=False.csv']
+    # csv_files = ['output_withoutMHC_metric=GOF_k=1_test_file=test01_max_features=45_bootstrap=False_tree_increment=False.csv', 'output_withoutMHC_metric=LOF_k=1_test_file=test01_max_features=45_bootstrap=False_tree_increment=False.csv', 'output_withoutMHC_metric=standard_k=1_test_file=test01_max_features=45_bootstrap=False_tree_increment=False.csv']
+    # csv_files = ['output_withMHC_metric=GOF_k=1_test_file=test01_max_features=10_bootstrap=True_tree_increment=False.csv', 'output_withMHC_metric=LOF_k=1_test_file=test01_max_features=10_bootstrap=True_tree_increment=False.csv', 'output_withMHC_metric=standard_k=1_test_file=test01_max_features=10_bootstrap=True_tree_increment=False.csv']
+    # csv_files = ['output_withMHC_metric=GOF_k=1_test_file=test01_max_features=20_bootstrap=True_tree_increment=False.csv', 'output_withMHC_metric=LOF_k=1_test_file=test01_max_features=20_bootstrap=True_tree_increment=False.csv', 'output_withMHC_metric=standard_k=1_test_file=test01_max_features=20_bootstrap=True_tree_increment=False.csv']
+    # csv_files = ['output_withMHC_metric=GOF_k=1_test_file=test01_max_features=30_bootstrap=True_tree_increment=False.csv', 'output_withMHC_metric=LOF_k=1_test_file=test01_max_features=30_bootstrap=True_tree_increment=False.csv', 'output_withMHC_metric=standard_k=1_test_file=test01_max_features=30_bootstrap=True_tree_increment=False.csv']
+    # csv_files = ['output_withMHC_metric=GOF_k=1_test_file=test01_max_features=40_bootstrap=True_tree_increment=False.csv', 'output_withMHC_metric=LOF_k=1_test_file=test01_max_features=40_bootstrap=True_tree_increment=False.csv', 'output_withMHC_metric=standard_k=1_test_file=test01_max_features=40_bootstrap=True_tree_increment=False.csv']
+    csv_files = ['output_withMHC_metric=GOF_k=1_test_file=test01_max_features=50_bootstrap=True_tree_increment=False.csv', 'output_withMHC_metric=LOF_k=1_test_file=test01_max_features=50_bootstrap=True_tree_increment=False.csv', 'output_withMHC_metric=standard_k=1_test_file=test01_max_features=50_bootstrap=True_tree_increment=False.csv']
+ 
+    # csv_files = ['output_withoutMHC_metric=GOF_k=1_test_file=test01_max_features=15_bootstrap=True_tree_increment=False.csv', 'output_withoutMHC_metric=LOF_k=1_test_file=test01_max_features=15_bootstrap=True_tree_increment=False.csv', 'output_withoutMHC_metric=standard_k=1_test_file=test01_max_features=15_bootstrap=True_tree_increment=False.csv']
+    # csv_files = ['output_withMHC_metric=GOF_k=1_test_file=test01_max_features=20_bootstrap=False_tree_increment=False.csv', 'output_withMHC_metric=LOF_k=1_test_file=test01_max_features=20_bootstrap=False_tree_increment=False.csv', 'output_withMHC_metric=standard_k=1_test_file=test01_max_features=20_bootstrap=False_tree_increment=False.csv']
+
     curve_labels = ['GOF', 'LOF', 'baseline']
 
     plot_roc_from_csvs(csv_files, curve_labels)

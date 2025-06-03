@@ -25,7 +25,7 @@ def RandomForest_withoutMHC(train_data, test_data, metric="standard", k=1, max_f
     else:
         rf_model = model.fit(X_train, np.ravel(y_train))
     # saveByPickle(rf_model, f"./models/rdforestWithoutMHCModel_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap={bootstrap}_tree_increment={tree_increment}.pickle")
-    test_acc, test_auc, sensitivity, specificity = evaluation(rf_model, X_test, y_test, test_data, test, metric, k, name_without_ext, max_features, bootstrap, tree_increment)
+    test_acc, test_auc, sensitivity, specificity = evaluation('ce', rf_model, X_test, y_test, test_data, test, metric, k, name_without_ext, max_features, bootstrap, tree_increment)
     return test_acc, test_auc, sensitivity, specificity
 
 def RandomForest_withMHC(train_data, test_data, metric="standard", k=1, max_features = 15, bootstrap = False, tree_increment = False, test = "no", name_without_ext = ""):
@@ -43,7 +43,7 @@ def RandomForest_withMHC(train_data, test_data, metric="standard", k=1, max_feat
         model = model.set_params(n_estimators=300)
         rf_model_mhc = model.fit(X_train_mhc, np.ravel(y_train_mhc))
     # m.saveByPickle(rf_model_mhc, f"./models/rdforestWithMHCModel_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap={bootstrap}_tree_increment={tree_increment}.pickle")
-    test_acc, test_auc, sensitivity, specificity = evaluation(rf_model_mhc, X_test_mhc, y_test_mhc, test_data, test, metric, k, name_without_ext, max_features, bootstrap, tree_increment)
+    test_acc, test_auc, sensitivity, specificity = evaluation('cem', rf_model_mhc, X_test_mhc, y_test_mhc, test_data, test, metric, k, name_without_ext, max_features, bootstrap, tree_increment)
     return test_acc, test_auc, sensitivity, specificity
 
 def rocAuc(y_true, y_proba, test, metric, k, name_without_ext, max_features, bootstrap, ti):
@@ -69,15 +69,24 @@ def saveByPickle(obj, path):
         pickle.dump(obj, f)
     print(f"{obj} has been saved at {path}.")
 
-def evaluation(rf_model, X_test, y_test, test_data, test, metric, k, name_without_ext, max_features, bootstrap, ti):
-    print('Evaluating Random Forest without MHC...')
+def evaluation(chain, rf_model, X_test, y_test, test_data, test, metric, k, name_without_ext, max_features, bootstrap, ti):
+    print('Evaluating Random Forest...')
     y_rf_test_proba = rf_model.predict_proba(X_test)[:, 1]
     y_rf_test_pred = rf_model.predict(X_test)
 
     df_test_rf = pd.DataFrame({'predict_proba': y_rf_test_proba})
     df_prob_test_rf = pd.concat([test_data.reset_index(drop=True), df_test_rf], axis=1)
     df_prob_test_rf['binder_pred'] = (df_prob_test_rf['predict_proba'] >= 0.5).astype(int)
-    df_prob_test_rf.to_csv(f"output_withoutMHC_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap={bootstrap}_tree_increment={ti}.csv", index=False)
+    if chain == 'ce':
+        if bootstrap:
+            df_prob_test_rf.to_csv(f"output_withoutMHC_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap=True_tree_increment={ti}.csv", index=False)
+        else:
+            df_prob_test_rf.to_csv(f"output_withoutMHC_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap=False_tree_increment={ti}.csv", index=False)
+    elif chain == 'cem':
+        if bootstrap:
+            df_prob_test_rf.to_csv(f"output_withMHC_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap=False_tree_increment={ti}.csv", index=False)
+        else:
+            df_prob_test_rf.to_csv(f"output_withMHC_metric={metric}_k={k}_test_file={name_without_ext}_max_features={max_features}_bootstrap=True_tree_increment={ti}.csv", index=False)
 
     # Obliczenie metryk
     test_acc = accuracy_score(y_test, y_rf_test_pred)
@@ -88,6 +97,6 @@ def evaluation(rf_model, X_test, y_test, test_data, test, metric, k, name_withou
     sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
     specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
 
-    rocAuc(df_prob_test_rf['binder'], df_prob_test_rf['predict_proba'], test, metric, k, name_without_ext, max_features, bootstrap, ti)
+    # rocAuc(df_prob_test_rf['binder'], df_prob_test_rf['predict_proba'], test, metric, k, name_without_ext, max_features, bootstrap, ti)
 
     return test_acc, test_auc, sensitivity, specificity
